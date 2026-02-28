@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>What's More North?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1923;
+    --bg-card: #172a3a;
+    --bg-card-hover: #1d3347;
+    --accent: #4ecdc4;
+    --accent-glow: rgba(78, 205, 196, 0.25);
+    --warm: #ff6b6b;
+    --gold: #f7d354;
+    --text: #e8eef4;
+    --text-dim: #7a8fa0;
+    --border: rgba(78, 205, 196, 0.15);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(78, 205, 196, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(78, 205, 196, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease-out;
+  }
+
+  .compass-icon {
+    width: 56px; height: 56px; margin: 0 auto 12px;
+    background: linear-gradient(135deg, var(--accent), #35b0a6);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 4px 24px var(--accent-glow);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif; font-size: 2rem; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle { color: var(--text-dim); font-size: 0.9rem; font-weight: 300; margin-top: 4px; }
+
+  .input-section {
+    display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;
+    animation: fadeUp 0.6s ease-out 0.1s both;
+  }
+
+  .input-group { position: relative; }
+
+  .input-label {
+    position: absolute; top: 10px; left: 14px;
+    font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-dim); z-index: 2;
+  }
+
+  .city-input {
+    width: 100%; padding: 30px 14px 12px;
+    background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 12px;
+    color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 500;
+    outline: none; transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .city-input::placeholder { color: var(--text-dim); font-weight: 300; }
+  .city-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+  .autocomplete-list {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px;
+    background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 12px;
+    overflow: hidden; max-height: 200px; overflow-y: auto; display: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .autocomplete-list.active { display: block; }
+  .autocomplete-item { padding: 12px 14px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border); }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: var(--bg-card-hover); }
+  .ac-city { font-size: 0.95rem; font-weight: 500; color: var(--text); }
+  .ac-country { font-size: 0.75rem; color: var(--text-dim); font-weight: 300; margin-top: 1px; }
+
+  .compare-btn {
+    padding: 16px; background: linear-gradient(135deg, var(--accent), #35b0a6);
+    border: none; border-radius: 12px; color: var(--bg);
+    font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+
+  .compare-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px var(--accent-glow); }
+  .compare-btn:active { transform: translateY(0); }
+  .compare-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .play-again-btn {
+    padding: 16px; background: transparent; border: 1.5px solid var(--accent);
+    border-radius: 12px; color: var(--accent); font-family: 'Outfit', sans-serif;
+    font-size: 1rem; font-weight: 600; letter-spacing: 0.5px; cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+
+  .play-again-btn:hover { background: rgba(78, 205, 196, 0.1); transform: translateY(-1px); }
+  .play-again-btn:active { transform: translateY(0); }
+
+  .loader { display: none; text-align: center; padding: 32px; color: var(--text-dim); font-weight: 300; }
+  .loader.active { display: block; }
+  .loader .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+
+  .results { display: none; flex-direction: column; gap: 16px; animation: fadeUp 0.5s ease-out; }
+  .results.active { display: flex; }
+
+  .winner-card {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(78, 205, 196, 0.03));
+    border: 1.5px solid rgba(78, 205, 196, 0.25); border-radius: var(--radius);
+    padding: 24px; text-align: center;
+  }
+
+  .winner-arrow { font-size: 2rem; margin-bottom: 4px; }
+  .winner-name { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent); }
+  .winner-label { font-size: 0.8rem; color: var(--text-dim); font-weight: 400; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+  .same-lat { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--gold); }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-city { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 1.35rem; }
+  .stat-value.north { color: var(--accent); }
+  .stat-value.south { color: var(--warm); }
+
+  /* Distance card — two columns */
+  .distance-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+
+  .dist-col { display: flex; flex-direction: column; }
+  .dist-col.primary { }
+  .dist-col.secondary { text-align: right; justify-content: center; }
+
+  .dist-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); font-weight: 600; margin-bottom: 2px;
+  }
+
+  .dist-value { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--gold); }
+  .dist-value-secondary { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-dim); }
+  .dist-sub { font-size: 0.75rem; color: var(--text-dim); font-weight: 300; }
+
+  .map-container { border-radius: var(--radius); overflow: hidden; border: 1.5px solid var(--border); }
+  .map-container canvas { width: 100%; display: block; }
+
+  .error { display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.25); border-radius: 12px; padding: 16px; color: var(--warm); text-align: center; font-size: 0.9rem; }
+  .error.active { display: block; }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="compass-icon">🧭</div>
+    <h1>What's More North?</h1>
+    <p class="subtitle">Enter two cities and find out</p>
+  </div>
+
+  <div id="inputSection" class="input-section">
+    <div class="input-group">
+      <span class="input-label">City 1</span>
+      <input id="city1" class="city-input" type="text" placeholder="e.g. San Francisco" autocomplete="off">
+      <div id="ac1" class="autocomplete-list"></div>
+    </div>
+    <div class="input-group">
+      <span class="input-label">City 2</span>
+      <input id="city2" class="city-input" type="text" placeholder="e.g. Tokyo" autocomplete="off">
+      <div id="ac2" class="autocomplete-list"></div>
+    </div>
+    <button id="compareBtn" class="compare-btn" onclick="compare()">Compare</button>
+  </div>
+
+  <div id="error" class="error"></div>
+  <div id="loader" class="loader">
+    <div class="spinner"></div>
+    Looking up coordinates…
+  </div>
+
+  <div id="results" class="results">
+    <div id="winnerCard" class="winner-card"></div>
+    <div id="statsGrid" class="stats-grid"></div>
+    <div id="distanceCard" class="distance-card" style="display:none;"></div>
+    <div id="mapContainer" class="map-container"></div>
+    <button class="play-again-btn" onclick="playAgain()">🔄 Play Again</button>
+  </div>
+</div>
+
+<script>
+  // ── Simplified world coastlines (lon, lat pairs) ──────
+  // Highly simplified continent outlines for visual context
+  const CONTINENTS = [
+    // North America
+    [[-130,50],[-125,60],[-120,67],[-140,70],[-160,72],[-168,66],[-165,60],[-150,58],[-135,55],[-125,49],[-125,45],[-120,35],[-115,32],[-110,30],[-105,25],[-100,20],[-95,18],[-90,15],[-85,12],[-80,8],[-78,8],[-82,10],[-83,15],[-88,18],[-90,21],[-88,25],[-82,25],[-80,28],[-82,30],[-85,30],[-88,30],[-90,29],[-94,29],[-97,26],[-97,28],[-95,30],[-92,30],[-90,32],[-85,35],[-80,33],[-78,35],[-76,38],[-74,40],[-70,42],[-67,45],[-65,47],[-62,46],[-60,47],[-55,50],[-58,52],[-62,54],[-68,58],[-75,62],[-80,63],[-85,65],[-90,68],[-95,70],[-100,72],[-110,75],[-120,73],[-130,72],[-140,70],[-130,50]],
+    // South America
+    [[-80,8],[-77,7],[-75,5],[-73,4],[-70,2],[-70,-2],[-75,-5],[-73,-10],[-70,-15],[-65,-18],[-60,-20],[-55,-22],[-48,-22],[-43,-23],[-40,-20],[-38,-15],[-35,-10],[-35,-5],[-50,0],[-53,3],[-58,5],[-62,8],[-68,10],[-72,10],[-75,8],[-78,8],[-80,8]],
+    [[-70,-15],[-68,-22],[-67,-28],[-68,-32],[-68,-36],[-68,-40],[-70,-42],[-72,-45],[-74,-48],[-74,-50],[-70,-54],[-68,-55],[-65,-55],[-60,-52],[-58,-48],[-60,-42],[-58,-38],[-57,-35],[-55,-30],[-52,-28],[-50,-25],[-48,-22],[-55,-22],[-60,-20],[-65,-18],[-70,-15]],
+    // Europe
+    [[-10,36],[-8,38],[-9,40],[-8,43],[-2,43],[2,42],[3,43],[5,43],[8,44],[12,44],[14,42],[16,40],[18,40],[20,38],[22,38],[24,36],[26,38],[28,40],[30,42],[32,44],[34,46],[32,48],[28,48],[24,48],[22,50],[18,50],[15,48],[14,50],[12,54],[10,54],[8,55],[10,57],[12,56],[12,58],[14,58],[18,60],[20,62],[22,64],[25,65],[28,68],[30,70],[25,70],[20,68],[15,68],[10,62],[6,58],[5,53],[4,52],[2,51],[0,50],[-2,48],[-5,48],[-8,44],[-10,36]],
+    // Africa
+    [[-18,15],[-17,20],[-13,25],[-10,30],[-5,34],[0,36],[5,37],[10,37],[12,34],[10,32],[8,30],[10,25],[12,20],[15,15],[18,12],[20,10],[22,8],[25,5],[28,3],[30,0],[32,-2],[35,-5],[38,-8],[40,-10],[38,-15],[35,-20],[32,-25],[30,-28],[28,-30],[28,-33],[25,-34],[20,-34],[18,-32],[16,-28],[15,-25],[12,-18],[12,-10],[10,-5],[8,0],[5,5],[2,5],[0,5],[-5,5],[-8,5],[-12,8],[-15,10],[-18,15]],
+    // Asia
+    [[30,42],[35,42],[40,40],[42,38],[44,36],[46,38],[50,38],[52,36],[55,25],[58,22],[60,22],[65,25],[68,24],[72,20],[75,15],[78,8],[80,10],[82,15],[85,18],[88,22],[90,22],[92,20],[95,15],[100,5],[104,2],[108,5],[110,2],[115,5],[118,8],[120,10],[118,15],[120,18],[120,22],[118,25],[118,30],[122,30],[125,33],[128,35],[130,35],[132,34],[133,36],[135,35],[138,35],[140,38],[141,42],[142,45],[140,48],[135,48],[130,43],[128,38],[126,36],[124,34],[122,32],[120,32],[118,32],[115,30],[110,30],[108,22],[106,16],[100,14],[98,18],[95,25],[90,25],[88,25],[85,28],[80,28],[78,30],[75,30],[72,25],[68,25],[62,25],[58,28],[55,30],[52,40],[50,42],[48,40],[45,42],[42,42],[40,42],[38,45],[35,45],[32,44],[30,42]],
+    // Russia / North Asia
+    [[30,70],[35,68],[40,68],[45,68],[50,70],[55,72],[60,70],[65,68],[70,70],[80,72],[90,72],[100,75],[110,73],[120,72],[130,68],[140,60],[150,58],[155,55],[160,58],[162,62],[170,65],[175,68],[180,68],[180,72],[170,72],[160,72],[150,72],[140,74],[130,76],[120,76],[110,76],[100,78],[90,75],[80,75],[70,73],[60,73],[50,72],[40,72],[30,70]],
+    // Australia
+    [[115,-35],[118,-35],[122,-34],[128,-32],[132,-32],[135,-34],[137,-35],[140,-37],[145,-38],[148,-38],[150,-35],[152,-32],[153,-28],[150,-24],[148,-20],[146,-18],[144,-15],[142,-12],[138,-12],[135,-14],[132,-12],[130,-14],[128,-15],[125,-15],[122,-18],[118,-20],[115,-22],[114,-25],[114,-30],[115,-35]],
+    // UK/Ireland (small but nice to have)
+    [[-6,50],[-5,52],[-4,54],[-5,56],[-6,58],[-4,58],[-2,57],[0,55],[1,53],[0,51],[-3,50],[-6,50]],
+    // Japan
+    [[130,31],[131,33],[133,34],[135,34],[137,35],[139,36],[140,38],[141,40],[141,43],[140,44],[140,42],[138,37],[136,35],[134,34],[132,33],[130,31]],
+    // New Zealand
+    [[166,-46],[168,-46],[172,-44],[174,-42],[176,-40],[178,-38],[177,-36],[175,-37],[173,-39],[172,-41],[170,-43],[168,-45],[166,-46]],
+    // Indonesia/Malaysia (simplified)
+    [[95,5],[100,2],[104,1],[106,-2],[108,-5],[110,-7],[112,-8],[115,-8],[118,-8],[120,-5],[125,-5],[128,-3],[130,-2],[135,-4],[138,-6],[140,-8],[142,-10],[140,-5],[135,-2],[130,0],[125,2],[120,2],[118,5],[115,5],[112,2],[108,3],[105,5],[100,5],[95,5]],
+  ];
+
+  // ── Autocomplete ──────────────────────────────────────
+  const debounceTimers = {};
+
+  function setupAutocomplete(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    let selectedIdx = -1;
+    let items = [];
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearTimeout(debounceTimers[inputId]);
+      if (q.length < 2) { hideList(); return; }
+      debounceTimers[inputId] = setTimeout(() => fetchSuggestions(q), 300);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (!list.classList.contains('active')) {
+        if (e.key === 'Enter') compare();
+        return;
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, items.length - 1); updateSelection(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, 0); updateSelection(); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (selectedIdx >= 0 && items[selectedIdx]) pickItem(items[selectedIdx]); else { hideList(); compare(); } }
+      else if (e.key === 'Escape') hideList();
+    });
+
+    input.addEventListener('blur', () => setTimeout(hideList, 200));
+
+    async function fetchSuggestions(q) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1&featuretype=city`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+        items = data.map(place => {
+          const city = place.address?.city || place.address?.town || place.address?.village || place.display_name.split(',')[0].trim();
+          const state = place.address?.state || '';
+          const country = place.address?.country || '';
+          const detail = [state, country].filter(Boolean).join(', ');
+          return { city, detail, display: city + (detail ? `, ${detail}` : ''), lat: parseFloat(place.lat), lon: parseFloat(place.lon) };
+        });
+        const seen = new Set();
+        items = items.filter(item => { if (seen.has(item.display)) return false; seen.add(item.display); return true; });
+        selectedIdx = -1;
+        renderList();
+      } catch (err) { hideList(); }
+    }
+
+    function renderList() {
+      if (!items.length) { hideList(); return; }
+      list.innerHTML = items.map((item, i) => `
+        <div class="autocomplete-item ${i === selectedIdx ? 'selected' : ''}" data-idx="${i}">
+          <div class="ac-city">${item.city}</div>
+          ${item.detail ? `<div class="ac-country">${item.detail}</div>` : ''}
+        </div>
+      `).join('');
+      list.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.addEventListener('mousedown', (e) => { e.preventDefault(); pickItem(items[parseInt(el.dataset.idx)]); });
+      });
+      list.classList.add('active');
+    }
+
+    function updateSelection() {
+      list.querySelectorAll('.autocomplete-item').forEach((el, i) => el.classList.toggle('selected', i === selectedIdx));
+    }
+
+    function pickItem(item) { input.value = item.display; hideList(); }
+    function hideList() { list.classList.remove('active'); items = []; selectedIdx = -1; }
+  }
+
+  setupAutocomplete('city1', 'ac1');
+  setupAutocomplete('city2', 'ac2');
+
+  // ── Core functions ────────────────────────────────────
+  async function geocode(city) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    const data = await res.json();
+    if (!data.length) throw new Error(`Couldn't find "${city}"`);
+    const place = data[0];
+    return { name: place.display_name.split(',')[0].trim(), fullName: place.display_name, lat: parseFloat(place.lat), lon: parseFloat(place.lon) };
+  }
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function formatLat(lat) {
+    return `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}`;
+  }
+
+  // ── Canvas Map with Continents ────────────────────────
+  function renderMap(a, b) {
+    const container = document.getElementById('mapContainer');
+    container.innerHTML = '<canvas id="mapCanvas"></canvas>';
+
+    const canvas = document.getElementById('mapCanvas');
+    const dpr = window.devicePixelRatio || 1;
+    const W = container.offsetWidth;
+    const H = 300;
+
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Ocean background
+    ctx.fillStyle = '#0e1c28';
+    ctx.fillRect(0, 0, W, H);
+
+    // Calculate bounds with padding
+    const latDiff = Math.abs(a.lat - b.lat);
+    const lonDiff = Math.abs(a.lon - b.lon);
+    const maxDiff = Math.max(latDiff, lonDiff);
+    const pad_factor = Math.max(maxDiff * 0.5, 8);
+
+    const minLat = Math.min(a.lat, b.lat) - pad_factor;
+    const maxLat = Math.max(a.lat, b.lat) + pad_factor;
+    const minLon = Math.min(a.lon, b.lon) - pad_factor;
+    const maxLon = Math.max(a.lon, b.lon) + pad_factor;
+
+    const margin = 10;
+
+    function project(lat, lon) {
+      const x = margin + ((lon - minLon) / (maxLon - minLon)) * (W - margin * 2);
+      const y = margin + ((maxLat - lat) / (maxLat - minLat)) * (H - margin * 2);
+      return { x, y };
+    }
+
+    // Draw continents
+    ctx.fillStyle = '#1a3040';
+    ctx.strokeStyle = '#264050';
+    ctx.lineWidth = 0.8;
+
+    for (const shape of CONTINENTS) {
+      ctx.beginPath();
+      let started = false;
+      for (const [lon, lat] of shape) {
+        const p = project(lat, lon);
+        // Only draw if at least partially visible
+        if (p.x >= -200 && p.x <= W + 200 && p.y >= -200 && p.y <= H + 200) {
+          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+          else ctx.lineTo(p.x, p.y);
+        } else if (started) {
+          ctx.lineTo(p.x, p.y);
+        }
+      }
+      if (started) {
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    // Latitude grid lines (on top of continents)
+    const latRange = maxLat - minLat;
+    const latStep = latRange > 60 ? 15 : latRange > 30 ? 10 : latRange > 12 ? 5 : latRange > 5 ? 2 : 1;
+    const startLat = Math.ceil(minLat / latStep) * latStep;
+
+    ctx.strokeStyle = 'rgba(78, 205, 196, 0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.font = '10px Outfit, sans-serif';
+    ctx.fillStyle = 'rgba(122, 143, 160, 0.4)';
+    ctx.textAlign = 'left';
+
+    for (let lat = startLat; lat <= maxLat; lat += latStep) {
+      const p = project(lat, minLon);
+      if (p.y > 10 && p.y < H - 10) {
+        ctx.beginPath();
+        ctx.moveTo(0, p.y);
+        ctx.lineTo(W, p.y);
+        ctx.stroke();
+        ctx.fillText(`${Math.abs(lat)}°${lat >= 0 ? 'N' : 'S'}`, 4, p.y - 3);
+      }
+    }
+
+    // Longitude grid lines
+    const lonRange = maxLon - minLon;
+    const lonStep = lonRange > 60 ? 15 : lonRange > 30 ? 10 : lonRange > 12 ? 5 : lonRange > 5 ? 2 : 1;
+    const startLon = Math.ceil(minLon / lonStep) * lonStep;
+
+    for (let lon = startLon; lon <= maxLon; lon += lonStep) {
+      const p = project(0, lon);
+      if (p.x > 10 && p.x < W - 10) {
+        ctx.beginPath();
+        ctx.moveTo(p.x, 0);
+        ctx.lineTo(p.x, H);
+        ctx.stroke();
+      }
+    }
+
+    const pA = project(a.lat, a.lon);
+    const pB = project(b.lat, b.lon);
+
+    // Dashed line between cities
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = 'rgba(78, 205, 196, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pA.x, pA.y);
+    ctx.lineTo(pB.x, pB.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const isANorth = a.lat > b.lat;
+
+    // Glow behind dots
+    function drawGlow(p, color) {
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 20);
+      grad.addColorStop(0, color + '40');
+      grad.addColorStop(1, color + '00');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    drawGlow(pA, isANorth ? '#4ecdc4' : '#ff6b6b');
+    drawGlow(pB, isANorth ? '#ff6b6b' : '#4ecdc4');
+
+    // City dots
+    function drawDot(p, color) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    drawDot(pA, isANorth ? '#4ecdc4' : '#ff6b6b');
+    drawDot(pB, isANorth ? '#ff6b6b' : '#4ecdc4');
+
+    // Labels
+    ctx.font = '600 12px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+
+    function drawLabel(p, name, above) {
+      const metrics = ctx.measureText(name);
+      const lw = metrics.width + 14;
+      const lh = 22;
+      const ly = above ? p.y - 30 : p.y + 14;
+
+      // Clamp to canvas bounds
+      const lx = Math.max(lw / 2 + 4, Math.min(W - lw / 2 - 4, p.x));
+
+      ctx.fillStyle = 'rgba(10, 20, 30, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(lx - lw / 2, ly, lw, lh, 5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(78, 205, 196, 0.2)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#e8eef4';
+      ctx.fillText(name, lx, ly + 15);
+    }
+
+    if (pA.y < pB.y) {
+      drawLabel(pA, a.name, true);
+      drawLabel(pB, b.name, false);
+    } else {
+      drawLabel(pA, a.name, false);
+      drawLabel(pB, b.name, true);
+    }
+  }
+
+  // ── Compare ───────────────────────────────────────────
+  async function compare() {
+    const c1 = document.getElementById('city1').value.trim();
+    const c2 = document.getElementById('city2').value.trim();
+    const btn = document.getElementById('compareBtn');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const error = document.getElementById('error');
+    const inputSection = document.getElementById('inputSection');
+
+    if (!c1 || !c2) {
+      error.textContent = 'Please enter two cities.';
+      error.classList.add('active');
+      results.classList.remove('active');
+      return;
+    }
+
+    error.classList.remove('active');
+    results.classList.remove('active');
+    loader.classList.add('active');
+    btn.disabled = true;
+
+    try {
+      const [a, b] = await Promise.all([geocode(c1), geocode(c2)]);
+
+      const north = a.lat > b.lat ? a : b;
+      const south = a.lat > b.lat ? b : a;
+      const same = Math.abs(a.lat - b.lat) < 0.001;
+      const distKm = haversine(a.lat, a.lon, b.lat, b.lon);
+      const distMi = distKm * 0.621371;
+      const latDiffDeg = Math.abs(a.lat - b.lat);
+      const nsKm = latDiffDeg * 111;
+      const nsMi = nsKm * 0.621371;
+
+      const winnerCard = document.getElementById('winnerCard');
+      if (same) {
+        winnerCard.innerHTML = `<div class="winner-arrow">↔️</div><div class="same-lat">Nearly the same latitude!</div><div class="winner-label">${a.name} & ${b.name}</div>`;
+      } else {
+        winnerCard.innerHTML = `<div class="winner-arrow">⬆️</div><div class="winner-name">${north.name}</div><div class="winner-label">is further north</div>`;
+      }
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card"><div class="stat-city">${a.name}</div><div class="stat-value ${a === north ? 'north' : 'south'}">${formatLat(a.lat)}</div></div>
+        <div class="stat-card"><div class="stat-city">${b.name}</div><div class="stat-value ${b === north ? 'north' : 'south'}">${formatLat(b.lat)}</div></div>
+      `;
+
+      const dc = document.getElementById('distanceCard');
+      dc.style.display = 'grid';
+      dc.innerHTML = `
+        <div class="dist-col primary">
+          <div class="dist-label">North–South Distance</div>
+          <div class="dist-value">${Math.round(nsMi)} miles</div>
+          <div class="dist-sub">${Math.round(nsKm)} km · ${latDiffDeg.toFixed(2)}° apart</div>
+        </div>
+        <div class="dist-col secondary">
+          <div class="dist-label">Total Distance</div>
+          <div class="dist-value-secondary">${Math.round(distMi)} mi</div>
+          <div class="dist-sub">${Math.round(distKm)} km straight line</div>
+        </div>
+      `;
+
+      inputSection.style.display = 'none';
+      loader.classList.remove('active');
+      results.classList.add('active');
+
+      setTimeout(() => renderMap(a, b), 50);
+
+    } catch (err) {
+      loader.classList.remove('active');
+      error.textContent = err.message;
+      error.classList.add('active');
+    }
+
+    btn.disabled = false;
+  }
+
+  // ── Play Again ────────────────────────────────────────
+  function playAgain() {
+    document.getElementById('results').classList.remove('active');
+    document.getElementById('error').classList.remove('active');
+    document.getElementById('inputSection').style.display = 'flex';
+    document.getElementById('city1').value = '';
+    document.getElementById('city2').value = '';
+    document.getElementById('city1').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
