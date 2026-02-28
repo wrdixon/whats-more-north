@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>What's More North?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0f1923;
+    --bg-card: #172a3a;
+    --bg-card-hover: #1d3347;
+    --accent: #4ecdc4;
+    --accent-glow: rgba(78, 205, 196, 0.25);
+    --warm: #ff6b6b;
+    --gold: #f7d354;
+    --text: #e8eef4;
+    --text-dim: #7a8fa0;
+    --border: rgba(78, 205, 196, 0.15);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(78, 205, 196, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(78, 205, 196, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease-out;
+  }
+
+  .compass-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    background: linear-gradient(135deg, var(--accent), #35b0a6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 4px 24px var(--accent-glow);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-weight: 300;
+    margin-top: 4px;
+  }
+
+  /* Input area */
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.6s ease-out 0.1s both;
+  }
+
+  .input-group {
+    position: relative;
+  }
+
+  .input-label {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    z-index: 2;
+  }
+
+  .city-input {
+    width: 100%;
+    padding: 30px 14px 12px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .city-input::placeholder {
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .city-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .compare-btn {
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent), #35b0a6);
+    border: none;
+    border-radius: 12px;
+    color: var(--bg);
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+
+  .compare-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px var(--accent-glow);
+  }
+
+  .compare-btn:active { transform: translateY(0); }
+  .compare-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Autocomplete dropdown */
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin-top: 4px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .autocomplete-list.active { display: block; }
+
+  .autocomplete-item {
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .autocomplete-item:last-child { border-bottom: none; }
+
+  .autocomplete-item:hover,
+  .autocomplete-item.selected {
+    background: var(--bg-card-hover);
+  }
+
+  .ac-city {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .ac-country {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-top: 1px;
+  }
+
+  /* Loading */
+  .loader {
+    display: none;
+    text-align: center;
+    padding: 32px;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .loader.active { display: block; }
+
+  .loader .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  /* Results */
+  .results {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeUp 0.5s ease-out;
+  }
+
+  .results.active { display: flex; }
+
+  /* Winner card */
+  .winner-card {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(78, 205, 196, 0.03));
+    border: 1.5px solid rgba(78, 205, 196, 0.25);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+  }
+
+  .winner-arrow {
+    font-size: 2rem;
+    margin-bottom: 4px;
+  }
+
+  .winner-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    color: var(--accent);
+  }
+
+  .winner-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+  }
+
+  .same-lat {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    color: var(--gold);
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .stat-city {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.35rem;
+  }
+
+  .stat-value.north { color: var(--accent); }
+  .stat-value.south { color: var(--warm); }
+
+  .stat-unit {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  /* Distance banner */
+  .distance-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .distance-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: rgba(247, 211, 84, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .distance-info { flex: 1; }
+
+  .distance-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .distance-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+  }
+
+  .distance-secondary {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  /* Latitude difference */
+  .lat-diff {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    text-align: center;
+    margin-top: -4px;
+  }
+
+  .lat-diff strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Map */
+  .map-container {
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    height: 280px;
+  }
+
+  #map {
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Error */
+  .error {
+    display: none;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.25);
+    border-radius: 12px;
+    padding: 16px;
+    color: var(--warm);
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .error.active { display: block; }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Leaflet overrides for dark theme */
+  .leaflet-control-attribution { display: none !important; }
+  .leaflet-control-zoom a {
+    background: var(--bg-card) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="compass-icon">🧭</div>
+    <h1>What's More North?</h1>
+    <p class="subtitle">Enter two cities and find out</p>
+  </div>
+
+  <div class="input-section">
+    <div class="input-group">
+      <span class="input-label">City 1</span>
+      <input id="city1" class="city-input" type="text" placeholder="e.g. San Francisco" autocomplete="off">
+      <div id="ac1" class="autocomplete-list"></div>
+    </div>
+    <div class="input-group">
+      <span class="input-label">City 2</span>
+      <input id="city2" class="city-input" type="text" placeholder="e.g. Tokyo" autocomplete="off">
+      <div id="ac2" class="autocomplete-list"></div>
+    </div>
+    <button id="compareBtn" class="compare-btn" onclick="compare()">Compare</button>
+  </div>
+
+  <div id="error" class="error"></div>
+  <div id="loader" class="loader">
+    <div class="spinner"></div>
+    Looking up coordinates…
+  </div>
+
+  <div id="results" class="results">
+    <div id="winnerCard" class="winner-card"></div>
+
+    <div id="statsGrid" class="stats-grid"></div>
+
+    <div id="latDiff" class="lat-diff"></div>
+
+    <div id="distanceCard" class="distance-card" style="display:none;"></div>
+
+    <div id="mapContainer" class="map-container"></div>
+  </div>
+</div>
+
+<script>
+  let map = null;
+
+  // ── Autocomplete ──────────────────────────────────────
+  const debounceTimers = {};
+
+  function setupAutocomplete(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    let selectedIdx = -1;
+    let items = [];
+
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearTimeout(debounceTimers[inputId]);
+      if (q.length < 2) { hideList(); return; }
+
+      debounceTimers[inputId] = setTimeout(() => fetchSuggestions(q), 300);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (!list.classList.contains('active')) {
+        if (e.key === 'Enter') compare();
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIdx = Math.min(selectedIdx + 1, items.length - 1);
+        updateSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIdx = Math.max(selectedIdx - 1, 0);
+        updateSelection();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (selectedIdx >= 0 && items[selectedIdx]) {
+          pickItem(items[selectedIdx]);
+        } else {
+          hideList();
+          compare();
+        }
+      } else if (e.key === 'Escape') {
+        hideList();
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      // Delay so click on item registers
+      setTimeout(hideList, 200);
+    });
+
+    async function fetchSuggestions(q) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1&featuretype=city`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const data = await res.json();
+
+        items = data.map(place => {
+          const city = place.address?.city || place.address?.town || place.address?.village || place.display_name.split(',')[0].trim();
+          const state = place.address?.state || '';
+          const country = place.address?.country || '';
+          const detail = [state, country].filter(Boolean).join(', ');
+          return {
+            city,
+            detail,
+            display: city + (detail ? `, ${detail}` : ''),
+            lat: parseFloat(place.lat),
+            lon: parseFloat(place.lon)
+          };
+        });
+
+        // Deduplicate by display name
+        const seen = new Set();
+        items = items.filter(item => {
+          if (seen.has(item.display)) return false;
+          seen.add(item.display);
+          return true;
+        });
+
+        selectedIdx = -1;
+        renderList();
+      } catch (err) {
+        hideList();
+      }
+    }
+
+    function renderList() {
+      if (!items.length) { hideList(); return; }
+      list.innerHTML = items.map((item, i) => `
+        <div class="autocomplete-item ${i === selectedIdx ? 'selected' : ''}" data-idx="${i}">
+          <div class="ac-city">${item.city}</div>
+          ${item.detail ? `<div class="ac-country">${item.detail}</div>` : ''}
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          pickItem(items[parseInt(el.dataset.idx)]);
+        });
+      });
+
+      list.classList.add('active');
+    }
+
+    function updateSelection() {
+      list.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+        el.classList.toggle('selected', i === selectedIdx);
+      });
+    }
+
+    function pickItem(item) {
+      input.value = item.display;
+      hideList();
+    }
+
+    function hideList() {
+      list.classList.remove('active');
+      items = [];
+      selectedIdx = -1;
+    }
+  }
+
+  setupAutocomplete('city1', 'ac1');
+  setupAutocomplete('city2', 'ac2');
+
+  // ── Geocode & Compare ─────────────────────────────────
+  async function geocode(city) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`;
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'en' }
+    });
+    const data = await res.json();
+    if (!data.length) throw new Error(`Couldn't find "${city}"`);
+    const place = data[0];
+    return {
+      name: place.display_name.split(',')[0].trim(),
+      fullName: place.display_name,
+      lat: parseFloat(place.lat),
+      lon: parseFloat(place.lon)
+    };
+  }
+
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 +
+              Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+              Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function formatLat(lat) {
+    const dir = lat >= 0 ? 'N' : 'S';
+    return `${Math.abs(lat).toFixed(4)}° ${dir}`;
+  }
+
+  async function compare() {
+    const c1 = document.getElementById('city1').value.trim();
+    const c2 = document.getElementById('city2').value.trim();
+    const btn = document.getElementById('compareBtn');
+    const loader = document.getElementById('loader');
+    const results = document.getElementById('results');
+    const error = document.getElementById('error');
+
+    if (!c1 || !c2) {
+      error.textContent = 'Please enter two cities.';
+      error.classList.add('active');
+      results.classList.remove('active');
+      return;
+    }
+
+    error.classList.remove('active');
+    results.classList.remove('active');
+    loader.classList.add('active');
+    btn.disabled = true;
+
+    try {
+      const [a, b] = await Promise.all([geocode(c1), geocode(c2)]);
+
+      const north = a.lat > b.lat ? a : b;
+      const south = a.lat > b.lat ? b : a;
+      const same = Math.abs(a.lat - b.lat) < 0.001;
+
+      const distKm = haversine(a.lat, a.lon, b.lat, b.lon);
+      const distMi = distKm * 0.621371;
+      const latDiffDeg = Math.abs(a.lat - b.lat);
+
+      const winnerCard = document.getElementById('winnerCard');
+      if (same) {
+        winnerCard.innerHTML = `
+          <div class="winner-arrow">↔️</div>
+          <div class="same-lat">Nearly the same latitude!</div>
+          <div class="winner-label">${a.name} & ${b.name}</div>
+        `;
+      } else {
+        winnerCard.innerHTML = `
+          <div class="winner-arrow">⬆️</div>
+          <div class="winner-name">${north.name}</div>
+          <div class="winner-label">is further north</div>
+        `;
+      }
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-city">${a.name}</div>
+          <div class="stat-value ${a === north ? 'north' : 'south'}">${formatLat(a.lat)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-city">${b.name}</div>
+          <div class="stat-value ${b === north ? 'north' : 'south'}">${formatLat(b.lat)}</div>
+        </div>
+      `;
+
+      document.getElementById('latDiff').innerHTML =
+        `Latitude difference: <strong>${latDiffDeg.toFixed(2)}°</strong> (~${(latDiffDeg * 111).toFixed(0)} km north–south)`;
+
+      const dc = document.getElementById('distanceCard');
+      dc.style.display = 'flex';
+      dc.innerHTML = `
+        <div class="distance-icon">📏</div>
+        <div class="distance-info">
+          <div class="distance-label">Distance apart</div>
+          <div class="distance-value">${distMi.toFixed(0)} miles</div>
+          <div class="distance-secondary">${distKm.toFixed(0)} km (straight line)</div>
+        </div>
+      `;
+
+      loader.classList.remove('active');
+      results.classList.add('active');
+
+      setTimeout(() => {
+        const mapEl = document.getElementById('map');
+        if (map) { map.remove(); map = null; }
+        map = L.map(mapEl, { zoomControl: true, attributionControl: false });
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+        }).addTo(map);
+
+        const accentColor = '#4ecdc4';
+        const warmColor = '#ff6b6b';
+
+        const northIcon = L.divIcon({
+          className: '',
+          html: `<div style="
+            background:${accentColor};
+            width:14px;height:14px;border-radius:50%;
+            border:2.5px solid white;
+            box-shadow:0 2px 8px rgba(0,0,0,0.4);
+          "></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+
+        const southIcon = L.divIcon({
+          className: '',
+          html: `<div style="
+            background:${warmColor};
+            width:14px;height:14px;border-radius:50%;
+            border:2.5px solid white;
+            box-shadow:0 2px 8px rgba(0,0,0,0.4);
+          "></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+
+        L.marker([a.lat, a.lon], {
+          icon: a === north && !same ? northIcon : southIcon
+        }).addTo(map).bindPopup(`<strong>${a.name}</strong><br>${formatLat(a.lat)}`);
+
+        L.marker([b.lat, b.lon], {
+          icon: b === north && !same ? northIcon : southIcon
+        }).addTo(map).bindPopup(`<strong>${b.name}</strong><br>${formatLat(b.lat)}`);
+
+        L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {
+          color: accentColor,
+          weight: 2,
+          opacity: 0.5,
+          dashArray: '6 8'
+        }).addTo(map);
+
+        const bounds = L.latLngBounds([[a.lat, a.lon], [b.lat, b.lon]]);
+        map.fitBounds(bounds, { padding: [40, 40] });
+
+        // Force map to recalculate size (fixes blank tiles on mobile)
+        setTimeout(() => map.invalidateSize(), 200);
+      }, 300);
+
+    } catch (err) {
+      loader.classList.remove('active');
+      error.textContent = err.message;
+      error.classList.add('active');
+    }
+
+    btn.disabled = false;
+  }
+</script>
+
+</body>
+</html>
